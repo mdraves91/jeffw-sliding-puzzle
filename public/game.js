@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Randomize the board
         randomizeBoard(100);
+        updateBoard();
     }
     
     // Define the target positions for the win state
@@ -54,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Create initial game state with winning positions and empty middle
     function createInitialState() {
         // Create a deep copy of the target positions
-        return shuffle(targetPositions);
+        return JSON.parse(JSON.stringify(targetPositions));
     }
 
     function shuffle(arr) {
@@ -116,8 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const emptyPos = findEmptyCell();
             swapCells(1, 1, emptyPos.row, emptyPos.col);
         }
-        
-        updateBoard();
     }
     
     // Handle cell click
