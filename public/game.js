@@ -54,7 +54,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // Create initial game state with winning positions and empty middle
     function createInitialState() {
         // Create a deep copy of the target positions
-        return JSON.parse(JSON.stringify(targetPositions));
+        return shuffle(targetPositions);
+    }
+
+    function shuffle(arr) {
+        let array = JSON.parse(JSON.stringify(arr))
+        let currentIndex = array.length;
+
+        // While there remain elements to shuffle...
+        while (currentIndex != 0) {
+
+            // Pick a remaining element...
+            let randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+
+            // And swap it with the current element.
+            [array[currentIndex], array[randomIndex]] = [
+            array[randomIndex], array[currentIndex]];
+        }
+        return array;
     }
     
     // Randomize the board by making random valid moves
