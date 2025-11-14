@@ -9,7 +9,7 @@ def generate_file_hash(file_path):
         file_hash = hashlib.md5(f.read()).hexdigest()[:8]
     return file_hash
 
-def update_file_references(html_path, file_type, file_name, new_hash):
+def update_file_references(html_path, file_name, new_hash):
     """Update HTML file with new hashed filenames"""
     with open(html_path, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -22,7 +22,7 @@ def update_file_references(html_path, file_type, file_name, new_hash):
     
     replacement = fr'\1\2?v={new_hash}\4'
     updated_content, subs = re.subn(
-        pattern_map[file_type],
+        pattern_map[file_name.split('.')[-1]],
         replacement,
         content,
         flags=re.IGNORECASE
@@ -36,32 +36,27 @@ def update_file_references(html_path, file_type, file_name, new_hash):
 
 def main():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    public_dir = os.path.join(base_dir, 'public')
-    html_path = os.path.join(public_dir, 'index.html')
+    public_dir = Path(os.path.join(base_dir, 'public'))
+    html_path = public_dir / 'index.html'
     
-    if not os.path.exists(html_path):
+    if not html_path.exists():
         print("Error: index.html not found in the public directory")
         return
     
-    # Files to process: (filename, file_type)
-    files_to_process = [
-        ('style.css', 'css'),
-        ('game.js', 'js')
-    ]
-    
-    for file_name, file_type in files_to_process:
-        file_path = os.path.join(public_dir, file_name)
-        if not os.path.exists(file_path):
-            print(f"Warning: {file_name} not found, skipping...")
+    for file in public_dir.iterdir():
+        if not file.is_file():
             continue
-            
+        if not (file.name.endswith('.css') or file.name.endswith('.js')):
+            continue
+        
+        file_path = public_dir / file.name
         file_hash = generate_file_hash(file_path)
-        updated = update_file_references(html_path, file_type, file_name, file_hash)
+        updated = update_file_references(html_path, file.name, file_hash)
         
         if updated:
-            print(f"Updated {file_name} with hash: {file_hash}")
+            print(f"Updated {file.name} with hash: {file_hash}")
         else:
-            print(f"Warning: Could not update reference to {file_name} in HTML")
+            print(f"Warning: Could not update reference to {file.name} in HTML")
 
 if __name__ == "__main__":
     main()

@@ -1,24 +1,33 @@
 document.addEventListener('DOMContentLoaded', () => {
+    /****************************************************************************
+     * DOM ELEMENTS
+     ****************************************************************************/
     const board = document.getElementById('game-board');
     const resetBtn = document.getElementById('reset-btn');
     const messageEl = document.getElementById('message');
+    const moveCounter = document.getElementById('move-counter');
     
-    // GAME_STATE is an array in an array. 
-    // The arrays represent rows, and the elements are cells.
+    /******************************************************************************
+     * CONSTANTS
+     ******************************************************************************/
     const SIZE = 3;
     const GAME_STATE = [];
+    let moves = 0;
 
-    // Define the target positions for the win state
-    const targetPositions = [
+    const TARGET_POSITIONS = [
         ['blue', 'red', 'yellow'],
         ['green', null, 'green'],
         ['blue', 'red', 'yellow']
     ];
     
+    /******************************************************************************
+     * GAME STUFF
+     ******************************************************************************/
     function initGame() {
-        // Clear the board's content and the win message
+        // Reset game state
         board.innerHTML = '';
         messageEl.textContent = '';
+        moves = 0;
         
         // Create initial game state
         createInitialState();
@@ -34,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Create a copy of target positions and shuffle it
-        const newState = shuffle([...targetPositions[0], ...targetPositions[1], ...targetPositions[2]]);
+        const newState = shuffle([...TARGET_POSITIONS[0], ...TARGET_POSITIONS[1], ...TARGET_POSITIONS[2]]);
         
         // Push the shuffled rows into the game state
         GAME_STATE.push(
@@ -98,8 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 cell.className = 'cell';
                 
                 // Set target position border
-                if (targetPositions[row][col]) {
-                    cell.dataset.target = targetPositions[row][col];
+                if (TARGET_POSITIONS[row][col]) {
+                    cell.dataset.target = TARGET_POSITIONS[row][col];
                 }
                 else {
                     cell.dataset.target = 'empty';
@@ -132,9 +141,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             swapCells(clickRow, clickCol, emptyCell.row, emptyCell.col, GAME_STATE);
+            moves++;
             updateBoardGraphics();
             if (isGameWon()) {
-                messageEl.textContent = 'Congratulations! You won!';
+                messageEl.textContent = `Congratulations! You won in ${moves} moves!`;
             }
         }
     }
@@ -160,12 +170,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 index++;
             }
         }
+        moveCounter.textContent = moves;
     }
     
     function isGameWon() {
         for (let row = 0; row < SIZE; row++) {
             for (let col = 0; col < SIZE; col++) {
-                if (GAME_STATE[row][col] !== targetPositions[row][col]) {
+                if (GAME_STATE[row][col] !== TARGET_POSITIONS[row][col]) {
                     return false;
                 }
             }
@@ -173,6 +184,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
     
+    /****************************************************************************
+     * GAME INIT
+     ****************************************************************************/
     resetBtn.addEventListener('click', initGame);
     initGame();
 });
