@@ -2,22 +2,23 @@ document.addEventListener('DOMContentLoaded', () => {
     /****************************************************************************
      * DOM ELEMENTS
      ****************************************************************************/
-    const board = document.getElementById('game-board');
-    const resetBtn = document.getElementById('reset-btn');
+    const boardEl = document.getElementById('game-board');
     const messageEl = document.getElementById('message');
-    const moveCounter = document.getElementById('move-counter');
+    const moveCounterEl = document.getElementById('move-counter');
+    const resetBtn = document.getElementById('reset-btn');
     
     /******************************************************************************
      * CONSTANTS
      ******************************************************************************/
-    const SIZE = 3;
+    const SIZE = 9;
+    const MIDDLE_CELL_INDEX = 4;
     const GAME_STATE = [];
-    let moves = 0;
+    let moveCounter = 0;
 
-    const TARGET_POSITIONS = [
-        ['blue', 'red', 'yellow'],
-        ['green', null, 'green'],
-        ['blue', 'red', 'yellow']
+    const TARGET_STATE = [
+        'blue', 'red', 'yellow',
+        'green', null, 'green',
+        'blue', 'red', 'yellow'
     ];
     
     /******************************************************************************
@@ -25,9 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
      ******************************************************************************/
     function initGame() {
         // Reset game state
-        board.innerHTML = '';
+        boardEl.innerHTML = '';
         messageEl.textContent = '';
-        moves = 0;
+        moveCounterEl.textContent = 0;
         
         // Create initial game state
         createInitialState();
@@ -43,14 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Create a copy of target positions and shuffle it
-        const newState = shuffle([...TARGET_POSITIONS[0], ...TARGET_POSITIONS[1], ...TARGET_POSITIONS[2]]);
+        const newState = shuffle([...TARGET_STATE]);
         
         // Push the shuffled rows into the game state
-        GAME_STATE.push(
-            [newState[0], newState[1], newState[2]],
-            [newState[3], newState[4], newState[5]],
-            [newState[6], newState[7], newState[8]]
-        );
+        GAME_STATE.push(...newState);
     }
 
     // Fisher-Yates shuffle an input array, and return a copy
@@ -73,121 +70,113 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function ensureMiddleEmpty() {
-        if (GAME_STATE[1][1] !== null) {
+        if (GAME_STATE[MIDDLE_CELL_INDEX] !== null) {
             // Find the empty cell and swap it with the middle
-            const emptyPos = findEmptyCell(GAME_STATE);
-            swapCells(1, 1, emptyPos.row, emptyPos.col, GAME_STATE);
+            const emptyCell = findEmptyCell();
+            swapCells(MIDDLE_CELL_INDEX, emptyCell);
         }
     }
     
-    function swapCells(row1, col1, row2, col2) {
-        const temp = GAME_STATE[row1][col1];
-        GAME_STATE[row1][col1] = GAME_STATE[row2][col2];
-        GAME_STATE[row2][col2] = temp;
+    function swapCells(cell1, cell2) {
+        const temp = GAME_STATE[cell1];
+        GAME_STATE[cell1] = GAME_STATE[cell2];
+        GAME_STATE[cell2] = temp;
     }
     
     function findEmptyCell() {
-        for (let row = 0; row < SIZE; row++) {
-            for (let col = 0; col < SIZE; col++) {
-                if (GAME_STATE[row][col] === null) {
-                    return { row, col };
-                }
+        for (let cellIndex = 0; cellIndex < SIZE; cellIndex++) {
+            if (GAME_STATE[cellIndex] === null) {
+                return cellIndex;
             }
         }
         return null;
     }
 
 
-
     function createBoard() {
         // Create the cells, their initial css classes, and add them to the board
-        for (let row = 0; row < SIZE; row++) {
-            for (let col = 0; col < SIZE; col++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                
-                // Set target position border
-                if (TARGET_POSITIONS[row][col]) {
-                    cell.dataset.target = TARGET_POSITIONS[row][col];
-                }
-                else {
-                    cell.dataset.target = 'empty';
-                }
-                
-                if (GAME_STATE[row][col]) {
-                    cell.textContent = GAME_STATE[row][col].toUpperCase().charAt(0);
-                    cell.dataset.color = GAME_STATE[row][col];
-                } else {
-                    cell.classList.add('empty');
-                }
-                
-                cell.onmousedown = (e) => { e.preventDefault(); handleCellClick(row, col); };
-                cell.ontouchstart = (e) => { e.preventDefault(); handleCellClick(row, col); };
-                board.appendChild(cell);
+        for (let cellIndex = 0; cellIndex < SIZE; cellIndex++) {
+            const cellElement = document.createElement('div');
+            cellElement.className = 'cell';
+            
+            // Set target position border
+            if (TARGET_STATE[cellIndex]) {
+                cellElement.dataset.target = TARGET_STATE[cellIndex];
             }
+            else {
+                cellElement.dataset.target = 'empty';
+            }
+            
+            if (GAME_STATE[cellIndex]) {
+                cellElement.textContent = GAME_STATE[cellIndex].toUpperCase().charAt(0);
+                cellElement.dataset.color = GAME_STATE[cellIndex];
+            } else {
+                cellElement.classList.add('empty');
+            }
+            
+            cellElement.onmousedown = (e) => { e.preventDefault(); handleCellClick(cellIndex); };
+            cellElement.ontouchstart = (e) => { e.preventDefault(); handleCellClick(cellIndex); };
+            boardEl.appendChild(cellElement);
         }
     }
 
-    function handleCellClick(clickRow, clickCol) {
-        const emptyCell = findEmptyCell(GAME_STATE);
+    /**
+     * Handles a cell click event.
+     * @param {number} clickedCellIndex - The index of the clicked cell.
+     */
+    function handleCellClick(clickedCellIndex) {
+        const emptyCellIndex = findEmptyCell();
         
         // Check if the clicked cell is adjacent to the empty cell
-        if ((Math.abs(clickRow - emptyCell.row) === 1 && clickCol === emptyCell.col) ||
-            (Math.abs(clickCol - emptyCell.col) === 1 && clickRow === emptyCell.row)) {
+        // If it is 1, they are adjacent horizontally
+        // If it is 3, they are adjacent vertically
+        if ((Math.abs(clickedCellIndex - emptyCellIndex) === 1) || Math.abs(clickedCellIndex - emptyCellIndex) === 3) {
             
             // Check if move is valid (no vertical moves in middle column)
-            if (clickCol === 1 && emptyCell.col === 1 && clickRow !== emptyCell.row) {
+            if (clickedCellIndex % 3 === 1 && emptyCellIndex % 3 === 1 && clickedCellIndex !== emptyCellIndex) {
                 // Show invalid move feedback
-                const cells = document.querySelectorAll('.cell');
-                const cellIndex = clickRow * SIZE + clickCol;
-                const cell = cells[cellIndex];
-                cell.classList.add('invalid-move');                
+                const cellElements = document.querySelectorAll('.cell');
+                const cellElement = cellElements[clickedCellIndex];
+                cellElement.classList.add('invalid-move');                
                 setTimeout(() => {
-                    cell.classList.remove('invalid-move');
+                    cellElement.classList.remove('invalid-move');
                 }, 400);
                 
                 return;
             }
             
-            swapCells(clickRow, clickCol, emptyCell.row, emptyCell.col, GAME_STATE);
-            moves++;
+            swapCells(clickedCellIndex, emptyCellIndex);
+            moveCounter++;
             updateBoardGraphics();
             if (isGameWon()) {
-                messageEl.textContent = `Congratulations! You won in ${moves} moves!`;
+                messageEl.textContent = `Congratulations! You won in ${moveCounter} moves!`;
             }
         }
     }
     
     function updateBoardGraphics() {
-        const cells = document.querySelectorAll('.cell');
-        let index = 0;
+        const cellElements = document.querySelectorAll('.cell');
         
-        for (let row = 0; row < SIZE; row++) {
-            for (let col = 0; col < SIZE; col++) {
-                const cell = cells[index];
+        for (let cellIndex = 0; cellIndex < SIZE; cellIndex++) {
+            const cellElement = cellElements[cellIndex];
                 
-                if (GAME_STATE[row][col]) {
-                    cell.textContent = GAME_STATE[row][col].toUpperCase().charAt(0);
-                    cell.dataset.color = GAME_STATE[row][col];
-                    cell.classList.remove('empty');
-                } else {
-                    cell.textContent = '';
-                    cell.removeAttribute('data-color');
-                    cell.classList.add('empty');
-                }
-                
-                index++;
+            if (GAME_STATE[cellIndex]) {
+                cellElement.textContent = GAME_STATE[cellIndex].toUpperCase().charAt(0);
+                cellElement.dataset.color = GAME_STATE[cellIndex];
+                cellElement.classList.remove('empty');
+            } else {
+                cellElement.textContent = '';
+                cellElement.removeAttribute('data-color');
+                cellElement.classList.add('empty');
             }
         }
-        moveCounter.textContent = moves;
+        moveCounterEl.textContent = moveCounter;
     }
     
     function isGameWon() {
-        for (let row = 0; row < SIZE; row++) {
-            for (let col = 0; col < SIZE; col++) {
-                if (GAME_STATE[row][col] !== TARGET_POSITIONS[row][col]) {
-                    return false;
-                }
+        for (let cellIndex = 0; cellIndex < SIZE; cellIndex++) {
+            if (GAME_STATE[cellIndex] !== TARGET_STATE[cellIndex]) {
+                return false;
             }
         }
         return true;
