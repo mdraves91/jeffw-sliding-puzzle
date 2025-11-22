@@ -8,7 +8,7 @@ body {
     color: #333;
     line-height: 1.6;
     height: 100vh;
-    margin-bottom: 10vh;
+    margin: 0 0 1vh 0;
 }
 
 .game-container {
@@ -69,6 +69,55 @@ nav {
     background-color: #c0392b;
 }
 
+#solve-btn {
+    background-color: #2ecc71;
+}
+
+#solve-btn:hover {
+    background-color: #27ae60;
+}
+
+.solution-pane {
+    background-color: white;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 20px auto;
+    max-width: 500px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    display: none; /* Hidden by default */
+}
+
+.solution-pane h3 {
+    margin-top: 0;
+    color: #2c3e50;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.solution-steps {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px 0;
+}
+
+.solution-step {
+    padding: 8px 12px;
+    margin: 5px 0;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.solution-step:hover {
+    background-color: #e9ecef;
+}
+
+.solution-step.current {
+    background-color: #d1e7dd;
+    font-weight: bold;
+}
+
 h1 {
     color: #333;
     margin-bottom: 20px;
@@ -77,15 +126,17 @@ h1 {
 .board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-gap: 5px;
+    grid-gap: 15px;
     align-items: center;
     justify-items: center;
-    width: 100%;
-    max-width: 330px;
-    height: 330px;
+    
     margin: auto;
+    max-width: 330px;
+    max-height: 330px;
+    padding: 15px;
+
     background-color: #333;
-    padding: 10px;
+    
     border-radius: 5px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }

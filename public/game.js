@@ -1,25 +1,27 @@
 document.addEventListener('DOMContentLoaded', () => {
     /****************************************************************************
      * DOM ELEMENTS
-     ****************************************************************************/
-    const boardEl = document.getElementById('game-board');
-    const messageEl = document.getElementById('message');
-    const moveCounterEl = document.getElementById('move-counter');
-    const resetBtn = document.getElementById('reset-btn');
-    
-    /******************************************************************************
-     * CONSTANTS
-     ******************************************************************************/
-    const SIZE = 9;
-    const MIDDLE_CELL_INDEX = 4;
-    const GAME_STATE = [];
-    let moveCounter = 0;
-
+    ****************************************************************************/
+   const boardEl = document.getElementById('game-board');
+   const messageEl = document.getElementById('message');
+   const moveCounterEl = document.getElementById('move-counter');
+   const resetBtn = document.getElementById('reset-btn');
+//    const solveBtn = document.getElementById('solve-btn');
+   
+   /******************************************************************************
+    * CONSTANTS & VARIABLES
+   ******************************************************************************/
     const TARGET_STATE = [
         'blue', 'red', 'yellow',
         'green', null, 'green',
         'blue', 'red', 'yellow'
     ];
+    const SIZE = 9;
+    const MIDDLE_CELL_INDEX = 4;
+    
+    let gameInProgress = true;
+    let moveCounter = 0;
+    let GAME_STATE = [];
     
     /******************************************************************************
      * GAME STUFF
@@ -49,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fisher-Yates shuffle an input array, and return a copy
     function shuffle(arr) {
-        let array = JSON.parse(JSON.stringify(arr))
+        let array = JSON.parse(JSON.stringify(arr));
         let currentIndex = array.length;
 
         // While there remain elements to shuffle...
@@ -73,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (GAME_STATE[MIDDLE_CELL_INDEX] !== null) {
             // Find the empty cell and swap it with the middle
             const emptyCellIndex = findEmptyCell();
-            swapCells(MIDDLE_CELL_INDEX, emptyCellIndex);
+            swapCells(MIDDLE_CELL_INDEX, emptyCellIndex, GAME_STATE);
         }
     }
     
@@ -81,11 +83,12 @@ document.addEventListener('DOMContentLoaded', () => {
      * Swap the contents of two cells in the game state.
      * @param {number} cellIndex1 - The index of the first cell.
      * @param {number} cellIndex2 - The index of the second cell.
+     * @param {Array} gameState - The game state to swap cells in.
      */
-    function swapCells(cellIndex1, cellIndex2) {
-        const temp = GAME_STATE[cellIndex1];
-        GAME_STATE[cellIndex1] = GAME_STATE[cellIndex2];
-        GAME_STATE[cellIndex2] = temp;
+    function swapCells(cellIndex1, cellIndex2, gameState) {
+        const temp = gameState[cellIndex1];
+        gameState[cellIndex1] = gameState[cellIndex2];
+        gameState[cellIndex2] = temp;
     }
     
     /**
@@ -152,12 +155,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            swapCells(clickedCellIndex, emptyCellIndex);
-            moveCounter++;
-            updateBoardGraphics();
-            if (isGameWon()) {
+            swapCells(clickedCellIndex, emptyCellIndex, GAME_STATE);
+            moveCounter += gameInProgress ? 1 : 0;
+            if (gameInProgress && isGameWon()) {
                 messageEl.textContent = `Congratulations! You won in ${moveCounter} moves!`;
+                gameInProgress = false;
             }
+            updateBoardGraphics();
         }
     }
     
@@ -185,7 +189,98 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return true;
     }
+
+    /****************************************************************************
+     * SOLVER
+     ****************************************************************************/
+    function solvePuzzle(gameState, targetState) {
+        const workQueue = new Array();
+        const hashesSeen = new Set();
+        const targetHash = hashGameState(targetState);
     
+        hashesSeen.add(hashGameState(gameState));
+        
+        const queueItem = {
+            moveCount: 0,
+            emptyTileIndex: gameState.indexOf(null),
+            gameState: gameState,
+            moves: [],
+        }
+        workQueue.push(queueItem);
+    
+        while(workQueue.length > 0) {
+            const currentState = workQueue.shift();
+            for(const move of getPossibleMoves(currentState)) {            
+                const newGameState = [...currentState.gameState];
+                
+                // Swap cells
+                swapCells(currentState.emptyTileIndex, move.swapWithIndex, newGameState);
+                
+                // If the new state is the target state, return it
+                // If the new state has been seen previously, skip it
+                // Otherwise, add it to the queue
+                const newHash = hashGameState(newGameState);
+                const newState = {
+                    moveCount: currentState.moveCount + 1,
+                    emptyTileIndex: move.swapWithIndex,
+                    gameState: newGameState,
+                    moves: [...currentState.moves, move],
+                }
+                if(newHash === targetHash) {
+                    return newState;
+                }
+                else if (hashesSeen.has(newHash)) {
+                    continue;
+                }
+                else {
+                    hashesSeen.add(newHash);
+                    workQueue.push(newState);
+                }
+            }
+        }
+        throw new Error("All possibilities exhausted, no solution found");
+    }
+
+    function hashGameState(gameState) {
+        const hash = gameState
+            .map(color => color || '_')
+            .map(color => color.charAt(0).toUpperCase())
+            .join('');
+        return hash;
+    }
+    
+    function getPossibleMoves(queueItem) {
+        // The tiles are numbered as such
+        // 0 1 2
+        // 3 4 5
+        // 6 7 8
+        switch(queueItem.emptyTileIndex) {
+            case 0: return [{label: "←", swapWithIndex:1}, {label: "↑", swapWithIndex:3}];
+            case 1: return [{label: "→", swapWithIndex:0}, {label: "←", swapWithIndex:2}];
+            case 2: return [{label: "→", swapWithIndex:1}, {label: "↑", swapWithIndex:5}];
+            case 3: return [{label: "↓", swapWithIndex:0}, {label: "←", swapWithIndex:4}, {label: "↑", swapWithIndex:6}];
+            case 4: return [{label: "→", swapWithIndex:3}, {label: "←", swapWithIndex:5}];
+            case 5: return [{label: "↓", swapWithIndex:2}, {label: "→", swapWithIndex:4}, {label: "↑", swapWithIndex:8}];
+            case 6: return [{label: "↓", swapWithIndex:3}, {label: "←", swapWithIndex:7}];
+            case 7: return [{label: "→", swapWithIndex:6}, {label: "←", swapWithIndex:8}];
+            case 8: return [{label: "↓", swapWithIndex:5}, {label: "→", swapWithIndex:7}];
+        }
+    }
+
+    // solveBtn.addEventListener('click', () => {
+    //     const solution = solvePuzzle(GAME_STATE, TARGET_STATE);
+    //     const solutionSteps = solution.moves;
+    //     const solutionPane = document.getElementById('solution-pane');
+    //     const solutionStepsEl = document.getElementById('solution-steps');
+    //     solutionStepsEl.innerHTML = '';
+    //     solutionSteps.forEach((move, index) => {
+    //         const stepEl = document.createElement('div');
+    //         stepEl.className = 'solution-step';
+    //         stepEl.textContent = `${index + 1}. ${move.label}`;
+    //         solutionStepsEl.appendChild(stepEl);
+    //     });
+    //     solutionPane.style.display = 'block';
+    // });
     /****************************************************************************
      * GAME INIT
      ****************************************************************************/
