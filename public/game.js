@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
    /******************************************************************************
     * CONSTANTS & VARIABLES
    ******************************************************************************/
-    const TARGET_STATE = [
+    let TARGET_STATE = [
         'blue', 'red', 'yellow',
         'green', null, 'green',
         'blue', 'red', 'yellow'
@@ -31,7 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
         boardEl.innerHTML = '';
         
         resetGameState();
-        ensureMiddleEmpty();
+        ensureMiddleEmpty(TARGET_STATE)
+        ensureMiddleEmpty(GAME_STATE);
         createBoardElements();
         updateBoardGraphics();
     }
@@ -42,7 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
             GAME_STATE.pop();
         }
         
-        // Create a copy of target positions and shuffle it
+        // shuffle the target state and initial starting states
+        TARGET_STATE = shuffle(TARGET_STATE)
         const newState = shuffle(TARGET_STATE);
         
         // Push the shuffled rows into the game state
@@ -71,11 +73,11 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Ensure the middle cell is empty by swapping it with the empty cell.
      */
-    function ensureMiddleEmpty() {
-        if (GAME_STATE[MIDDLE_CELL_INDEX] !== null) {
+    function ensureMiddleEmpty(state) {
+        if (state[MIDDLE_CELL_INDEX] !== null) {
             // Find the empty cell and swap it with the middle
-            const emptyCellIndex = findEmptyCell();
-            swapCells(MIDDLE_CELL_INDEX, emptyCellIndex, GAME_STATE);
+            const emptyCellIndex = findEmptyCell(state);
+            swapCells(MIDDLE_CELL_INDEX, emptyCellIndex, state);
         }
     }
     
@@ -95,9 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
      * Find the index of the empty cell in the game state.
      * @returns {number} The index of the empty cell.
      */
-    function findEmptyCell() {
+    function findEmptyCell(state) {
         for (let cellIndex = 0; cellIndex < SIZE; cellIndex++) {
-            if (GAME_STATE[cellIndex] === null) {
+            if (state[cellIndex] === null) {
                 return cellIndex;
             }
         }
@@ -136,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {number} clickedCellIndex - The index of the clicked cell.
      */
     function handleCellClick(clickedCellIndex) {
-        const emptyCellIndex = findEmptyCell();
+        const emptyCellIndex = findEmptyCell(GAME_STATE);
         
         // Check if the clicked cell is adjacent to the empty cell
         // If it is 1, they are adjacent horizontally
